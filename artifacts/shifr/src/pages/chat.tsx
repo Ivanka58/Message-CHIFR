@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { useListUsers, useFetchMessages, useSendMessage, getListUsersQueryKey, getFetchMessagesQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../lib/session";
+import { useLang } from "../lib/lang";
 import { Lock, Send, Search, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function Chat() {
   const { session } = useSession();
+  const { t } = useLang();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [text, setText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -16,14 +18,14 @@ export default function Chat() {
   const queryClient = useQueryClient();
 
   const { data: users = [] } = useListUsers({ query: { queryKey: getListUsersQueryKey() } });
-  const { data: messages = [] } = useFetchMessages(selectedUserId!, { 
-    query: { 
-      enabled: !!selectedUserId, 
+  const { data: messages = [] } = useFetchMessages(selectedUserId!, {
+    query: {
+      enabled: !!selectedUserId,
       queryKey: getFetchMessagesQueryKey(selectedUserId!),
       refetchInterval: 3000
-    } 
+    }
   });
-  
+
   const sendMessage = useSendMessage();
 
   useEffect(() => {
@@ -44,20 +46,23 @@ export default function Chat() {
     });
   };
 
-  const filteredUsers = users.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.phone.includes(search));
+  const filteredUsers = users.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()) || u.phone.includes(search)
+  );
   const activeUser = users.find(u => u.id === selectedUserId);
 
   return (
     <div className="flex h-full w-full">
-      {/* Sidebar Contacts */}
+      {/* Боковая панель контактов */}
       <div className="w-80 border-r border-border bg-black/40 flex flex-col relative z-10">
         <div className="p-4 border-b border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/50" />
-            <Input 
+            <Input
+              data-testid="input-search"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Scan network..." 
+              placeholder={t.searchPlaceholder}
               className="w-full pl-9 bg-black/50 border-primary/20 text-primary rounded-none focus-visible:ring-primary/50 font-mono text-sm"
             />
           </div>
@@ -66,6 +71,7 @@ export default function Chat() {
           {filteredUsers.map(user => (
             <button
               key={user.id}
+              data-testid={`contact-user-${user.id}`}
               onClick={() => setSelectedUserId(user.id)}
               className={`w-full p-4 flex items-center gap-3 border-b border-border/50 transition-colors text-left ${selectedUserId === user.id ? 'bg-primary/10 border-l-2 border-l-primary' : 'hover:bg-accent/20 border-l-2 border-l-transparent'}`}
             >
@@ -86,31 +92,29 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Chat Area */}
+      {/* Область чата */}
       <div className="flex-1 flex flex-col relative z-10 bg-black/20 backdrop-blur-sm">
         {selectedUserId && activeUser ? (
           <>
-            {/* Header */}
             <div className="h-16 border-b border-border flex items-center px-6 bg-black/60">
               <div className="flex items-center gap-3">
                 <h2 className="font-mono text-lg text-primary font-bold">{activeUser.name}</h2>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 border border-primary/30 text-[10px] text-primary font-mono rounded-full">
-                  <Lock className="w-3 h-3" /> E2E ENCRYPTED
+                  <Lock className="w-3 h-3" /> {t.e2e}
                 </div>
               </div>
             </div>
 
-            {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
               {messages.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-primary/30 font-mono text-sm">
-                  [ NO PREVIOUS SECURE COMMS DETECTED ]
+                  {t.noMessages}
                 </div>
               ) : (
                 messages.map(msg => {
                   const isMe = msg.fromUserId === session?.userId;
                   return (
-                    <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                    <div key={msg.id} data-testid={`message-${msg.id}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
                       <div className={`max-w-[80%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                         <div className="flex items-center gap-2 mb-1 opacity-50 text-[10px] font-mono text-primary">
                           <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
@@ -131,26 +135,27 @@ export default function Chat() {
               )}
               {isTyping && (
                 <div className="text-primary/50 font-mono text-xs animate-pulse">
-                  ...transmitting
+                  {t.transmitting}
                 </div>
               )}
             </div>
 
-            {/* Input */}
             <div className="p-4 bg-black/80 border-t border-border">
               <form onSubmit={handleSend} className="flex gap-4">
                 <Input
+                  data-testid="input-message"
                   value={text}
                   onChange={e => setText(e.target.value)}
-                  placeholder="Enter secure message..."
+                  placeholder={t.messagePlaceholder}
                   className="flex-1 bg-black border-primary/30 text-primary placeholder:text-primary/30 font-mono rounded-none focus-visible:ring-primary/50"
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  data-testid="button-send"
+                  type="submit"
                   disabled={!text.trim() || sendMessage.isPending}
                   className="bg-primary/20 text-primary border border-primary hover:bg-primary hover:text-black rounded-none font-mono px-8"
                 >
-                  <Send className="w-4 h-4 mr-2" /> SEND
+                  <Send className="w-4 h-4 mr-2" /> {t.sendBtn}
                 </Button>
               </form>
             </div>
@@ -159,7 +164,7 @@ export default function Chat() {
           <div className="h-full flex items-center justify-center">
             <div className="text-center font-mono space-y-4">
               <Shield className="w-16 h-16 text-primary/20 mx-auto" />
-              <p className="text-primary/40 uppercase tracking-widest text-sm">[ SELECT NODE TO ESTABLISH LINK ]</p>
+              <p className="text-primary/40 uppercase tracking-widest text-sm">{t.selectNode}</p>
             </div>
           </div>
         )}

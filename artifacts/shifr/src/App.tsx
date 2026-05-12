@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider, useSession } from "./lib/session";
+import { LangProvider } from "./lib/lang";
 import { Layout } from "./components/layout";
 import Login from "./pages/login";
 import Chat from "./pages/chat";
@@ -58,7 +59,9 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <SessionProvider>
-            <Router />
+            <LangProvider>
+              <Router />
+            </LangProvider>
           </SessionProvider>
         </WouterRouter>
         <Toaster />
