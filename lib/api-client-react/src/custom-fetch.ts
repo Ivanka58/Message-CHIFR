@@ -358,6 +358,16 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  const sessionData = typeof window !== 'undefined' ? localStorage.getItem('shifr_session') : null;
+  if (sessionData && !headers.has("x-session-id")) {
+    try {
+      const parsed = JSON.parse(sessionData);
+      if (parsed.sessionId) {
+        headers.set("x-session-id", parsed.sessionId);
+      }
+    } catch(e) {}
+  }
+
   const requestInfo = { method, url: resolveUrl(input) };
 
   const response = await fetch(input, { ...init, method, headers });

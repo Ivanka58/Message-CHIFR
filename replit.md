@@ -1,10 +1,11 @@
-# [Project name]
+# SHIFR Messenger
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A cyberpunk-aesthetic secure web messenger with Matrix-style digital rain, neon UI, real-time messaging, and privacy features like panic codes and double-bottom settings.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/shifr run dev` — run the frontend (port 24570)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -14,6 +15,7 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, Tailwind CSS, shadcn/ui, wouter
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
@@ -22,23 +24,41 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — API contract (source of truth)
+- `lib/db/src/schema/` — DB tables: `users.ts`, `messages.ts`
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `artifacts/api-server/src/middlewares/session.ts` — session auth middleware
+- `artifacts/shifr/src/` — React frontend
+- `lib/api-client-react/src/generated/` — generated React Query hooks (don't edit)
+- `lib/api-zod/src/generated/` — generated Zod schemas (don't edit)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Demo verification code is always `A-123456` — no real SMS provider needed.
+- Session IDs (UUIDs) stored in PostgreSQL `users.session_id`; passed as `x-session-id` header.
+- Message encryption is simulated: plaintext stored as `text`, hex-encoded version stored as `encrypted_text`.
+- Rate limiting is in-memory (per userId, 30 msg/min); resets on server restart.
+- Admin endpoints (`/api/admin/*`) are unprotected — add auth if deploying publicly.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Phone number login (verification code: always A-123456 in demo)
+- Real-time messaging between users with E2E encryption simulation
+- Contacts list with online status indicators
+- Message stats dashboard
+- Settings: double-bottom passwords (localStorage), panic code (wipes session)
+- Admin panel: user list with message counts, recent message log
+- Pre-seeded test contact "Тестирование" (+0000000000)
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_Populate as you build._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Always run `pnpm run typecheck:libs` after changing `lib/db/src/schema/` before typechecking the api-server.
+- After any `openapi.yaml` change, run codegen before touching generated imports.
+- The `messages/stats` endpoint must be registered BEFORE `messages/:userId` in Express to avoid the `/stats` path being interpreted as a userId.
 
 ## Pointers
 
