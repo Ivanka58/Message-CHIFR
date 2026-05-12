@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useListUsers, useFetchMessages, useSendMessage, getListUsersQueryKey, getFetchMessagesQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "../lib/session";
-import { Lock, Send, Search } from "lucide-react";
+import { Lock, Send, Search, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
