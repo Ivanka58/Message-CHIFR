@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface CodeInputProps {
   value: string;
@@ -7,60 +7,88 @@ interface CodeInputProps {
   "data-testid"?: string;
 }
 
+/**
+ * Enforces the format A-XXXXXX:
+ *  - raw[0]    = letter (auto-uppercased)
+ *  - raw[1..6] = digits
+ *  - Displayed as: "A-123456"
+ *
+ * Uses onChange (not onKeyDown) so it works on mobile keyboards too.
+ */
 export function CodeInput({ value, onChange, isError = false, "data-testid": testId }: CodeInputProps) {
   const [shaking, setShaking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevIsError = useRef(false);
 
+  // Auto-focus when mounted
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, []);
+
   const triggerShake = useCallback(() => {
     setShaking(false);
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         setShaking(true);
         setTimeout(() => setShaking(false), 450);
-      });
-    });
+      })
+    );
   }, []);
 
-  // Trigger shake when parent signals an error
+  // Shake when parent signals error
   useEffect(() => {
-    if (isError && !prevIsError.current) {
-      triggerShake();
-    }
+    if (isError && !prevIsError.current) triggerShake();
     prevIsError.current = isError;
   }, [isError, triggerShake]);
 
+  // Display: insert dash after first char
   const displayValue =
-    value.length === 0
-      ? ""
-      : value.length === 1
-        ? value[0]
-        : value[0] + "-" + value.slice(1);
+    value.length === 0 ? "" : value.length === 1 ? value[0] : value[0] + "-" + value.slice(1);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Strip dashes from whatever the browser produced
+    const raw = e.target.value.replace(/-/g, "").replace(/\s/g, "");
 
-    if (e.key === "Backspace") {
-      onChange(value.slice(0, -1));
+    let processed = "";
+    let invalid = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      if (i >= 7) break; // max 7 chars (1 letter + 6 digits)
+      if (i === 0) {
+        if (/[a-zA-Z]/.test(raw[i])) {
+          processed += raw[i].toUpperCase();
+        } else {
+          invalid = true;
+          break;
+        }
+      } else {
+        if (/\d/.test(raw[i])) {
+          processed += raw[i];
+        } else {
+          invalid = true;
+          break;
+        }
+      }
+    }
+
+    if (invalid) {
+      triggerShake();
+      // Keep existing value — don't update
       return;
     }
-    if (e.key.length !== 1) return;
 
-    const ch = e.key;
-    if (value.length === 0) {
-      if (/[a-zA-Z]/.test(ch)) {
-        onChange(ch.toUpperCase());
-      } else {
+    onChange(processed);
+  };
+
+  // Fallback: also handle keydown for UX (backspace etc.)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") return; // allow form submit
+    if (value.length >= 7 && e.key !== "Backspace" && e.key !== "Delete" && !e.ctrlKey && !e.metaKey) {
+      if (e.key.length === 1) {
+        e.preventDefault();
         triggerShake();
       }
-    } else if (value.length < 7) {
-      if (/\d/.test(ch)) {
-        onChange(value + ch);
-      } else {
-        triggerShake();
-      }
-    } else {
-      triggerShake();
     }
   };
 
@@ -71,8 +99,10 @@ export function CodeInput({ value, onChange, isError = false, "data-testid": tes
       ref={inputRef}
       data-testid={testId}
       type="text"
+      inputMode="text"
+      autoComplete="one-time-code"
       value={displayValue}
-      onChange={() => {}}
+      onChange={handleChange}
       onKeyDown={handleKeyDown}
       placeholder="A-XXXXXX"
       maxLength={8}
