@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { AuthSession } from '@workspace/api-client-react/src/generated/api.schemas';
+import React, { createContext, useContext, useState } from 'react';
 import { useLocation } from 'wouter';
+
+export interface AuthSession {
+  sessionId: string;
+  userId: number;
+  name: string;
+  phone: string;
+}
 
 interface SessionContextType {
   session: AuthSession | null;

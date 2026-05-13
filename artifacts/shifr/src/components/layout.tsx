@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useSession } from "../lib/session";
 import { useLang } from "../lib/lang";
-import { Shield, MessageSquare, Settings, Users, LogOut } from "lucide-react";
+import { Shield, MessageSquare, Settings, LogOut } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -18,8 +18,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <nav className="p-2 md:p-4 space-y-2">
             <NavItem href="/chat" icon={<MessageSquare className="w-5 h-5" />} label={t.navComms} active={location === "/chat"} />
-            <NavItem href="/settings" icon={<Settings className="w-5 h-5" />} label={t.navSettings} active={location === "/settings"} />
-            <NavItem href="/admin" icon={<Users className="w-5 h-5" />} label={t.navNetwork} active={location === "/admin"} />
+            <NavItem href="/settings" icon={<Settings className="w-5 h-5" />} label={t.navSettings} active={location.startsWith("/settings")} />
           </nav>
         </div>
         <div className="p-2 md:p-4 border-t border-border">
@@ -35,7 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 overflow-hidden relative">
-        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#00ff64_1px,transparent_1px),linear-gradient(to_bottom,#00ff64_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[linear-gradient(to_right,#00ff64_1px,transparent_1px),linear-gradient(to_bottom,#00ff64_1px,transparent_1px)] bg-[size:2rem_2rem]" />
         {children}
       </main>
     </div>
@@ -47,7 +46,11 @@ function NavItem({ href, icon, label, active }: { href: string; icon: React.Reac
     <Link
       href={href}
       data-testid={`nav-${href.replace("/", "")}`}
-      className={`flex items-center justify-center md:justify-start px-3 py-3 transition-colors uppercase text-sm font-mono ${active ? "bg-primary/20 text-primary border-l-2 border-primary" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground border-l-2 border-transparent"}`}
+      className={`flex items-center justify-center md:justify-start px-3 py-3 transition-colors uppercase text-sm font-mono ${
+        active
+          ? "bg-primary/20 text-primary border-l-2 border-primary"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground border-l-2 border-transparent"
+      }`}
     >
       {icon}
       <span className="hidden md:inline ml-3">{label}</span>

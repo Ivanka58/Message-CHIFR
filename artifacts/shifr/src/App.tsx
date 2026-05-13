@@ -8,15 +8,14 @@ import { Layout } from "./components/layout";
 import Login from "./pages/login";
 import Chat from "./pages/chat";
 import Settings from "./pages/settings";
+import DoubleBottom from "./pages/settings/double-bottom";
+import Panic from "./pages/settings/panic";
 import Admin from "./pages/admin";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: false, refetchOnWindowFocus: false },
   },
 });
 
@@ -34,19 +33,19 @@ function Router() {
     <Switch>
       <Route path="/" component={Login} />
       <Route path="/chat">
-        <Layout>
-          <ProtectedRoute component={Chat} />
-        </Layout>
+        <Layout><ProtectedRoute component={Chat} /></Layout>
       </Route>
       <Route path="/settings">
-        <Layout>
-          <ProtectedRoute component={Settings} />
-        </Layout>
+        <Layout><ProtectedRoute component={Settings} /></Layout>
+      </Route>
+      <Route path="/settings/double-bottom">
+        <Layout><ProtectedRoute component={DoubleBottom} /></Layout>
+      </Route>
+      <Route path="/settings/panic">
+        <Layout><ProtectedRoute component={Panic} /></Layout>
       </Route>
       <Route path="/admin">
-        <Layout>
-          <ProtectedRoute component={Admin} />
-        </Layout>
+        <Layout><ProtectedRoute component={Admin} /></Layout>
       </Route>
       <Route component={NotFound} />
     </Switch>

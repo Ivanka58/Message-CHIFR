@@ -4,8 +4,9 @@ import { useSession } from "../lib/session";
 import { useLang } from "../lib/lang";
 import { useLogin, useVerifyCode } from "@workspace/api-client-react";
 import { Shield } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PhoneInput, isValidPhoneNumber } from "../components/phone-input";
+import { CodeInput } from "../components/code-input";
 
 export default function Login() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,20 +14,24 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { t, toggleLang } = useLang();
 
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
+  const [phone, setPhone] = useState("+");
+  const [rawCode, setRawCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [demoCode, setDemoCode] = useState("");
+
+  const [phoneError, setPhoneError] = useState(false);
+  const [codeError, setCodeError] = useState(false);
+  const [phoneShaking, setPhoneShaking] = useState(false);
+  const [codeShaking, setCodeShaking] = useState(false);
 
   const loginMutation = useLogin();
   const verifyMutation = useVerifyCode();
 
   useEffect(() => {
-    if (session) {
-      setLocation("/chat");
-    }
+    if (session) setLocation("/chat");
   }, [session, setLocation]);
 
+  // Digital rain
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -40,11 +45,9 @@ export default function Login() {
     const latin = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const nums = "0123456789";
     const alphabet = katakana + latin + nums;
-
     const fontSize = 16;
     const columns = canvas.width / fontSize;
-    const drops: number[] = [];
-    for (let x = 0; x < columns; x++) drops[x] = 1;
+    const drops: number[] = Array.from({ length: Math.ceil(columns) }, () => 1);
 
     const draw = () => {
       ctx.fillStyle = "rgba(0, 5, 0, 0.05)";
@@ -60,36 +63,47 @@ export default function Login() {
     };
 
     const interval = setInterval(draw, 33);
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
+    const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     window.addEventListener("resize", handleResize);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => { clearInterval(interval); window.removeEventListener("resize", handleResize); };
   }, []);
+
+  const triggerPhoneShake = () => {
+    setPhoneError(true);
+    setPhoneShaking(true);
+    setTimeout(() => setPhoneShaking(false), 420);
+  };
+
+  const triggerCodeShake = () => {
+    setCodeError(true);
+    setCodeShaking(true);
+    setTimeout(() => setCodeShaking(false), 420);
+  };
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone) return;
+    if (!isValidPhoneNumber(phone)) {
+      triggerPhoneShake();
+      return;
+    }
+    setPhoneError(false);
     loginMutation.mutate({ data: { phone } }, {
-      onSuccess: (data) => {
-        setDemoCode(data.code);
-        setStep("code");
-      }
+      onSuccess: (data) => { setDemoCode(data.code); setStep("code"); },
     });
   };
 
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) return;
-    verifyMutation.mutate({ data: { phone, code } }, {
-      onSuccess: (data) => {
-        setSession(data);
-        setLocation("/chat");
-      }
+    // rawCode must be exactly 7 chars: 1 letter + 6 digits
+    if (rawCode.length < 7) {
+      triggerCodeShake();
+      return;
+    }
+    const formatted = rawCode[0] + "-" + rawCode.slice(1);
+    setCodeError(false);
+    verifyMutation.mutate({ data: { phone, code: formatted } }, {
+      onSuccess: (data) => { setSession(data); setLocation("/chat"); },
+      onError: () => { triggerCodeShake(); },
     });
   };
 
@@ -107,14 +121,16 @@ export default function Login() {
         {step === "phone" ? (
           <form onSubmit={handlePhoneSubmit} className="space-y-6" data-testid="form-phone">
             <div className="space-y-2">
-              <label className="text-xs font-mono text-primary/70 uppercase">{t.phoneLabel}</label>
-              <Input
+              <label className="text-xs font-mono text-primary/70 uppercase tracking-widest">{t.phoneLabel}</label>
+              <PhoneInput
                 data-testid="input-phone"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder={t.phonePlaceholder}
-                className="bg-black/50 border-primary/30 text-primary placeholder:text-primary/30 focus-visible:ring-primary font-mono text-lg rounded-none"
+                onChange={(v) => { setPhone(v); setPhoneError(false); }}
+                isError={phoneShaking}
               />
+              {phoneError && !phoneShaking && (
+                <p className="text-xs text-destructive font-mono mt-1">{t.invalidPhone}</p>
+              )}
             </div>
             <Button
               data-testid="button-initiate"
@@ -128,15 +144,18 @@ export default function Login() {
         ) : (
           <form onSubmit={handleCodeSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4" data-testid="form-code">
             <div className="space-y-2">
-              <label className="text-xs font-mono text-primary/70 uppercase">{t.codeLabel}</label>
-              <Input
+              <label className="text-xs font-mono text-primary/70 uppercase tracking-widest">{t.codeLabel}</label>
+              <CodeInput
                 data-testid="input-code"
-                value={code}
-                onChange={e => setCode(e.target.value)}
-                placeholder="A-XXXXXX"
-                className="bg-black/50 border-primary/30 text-primary placeholder:text-primary/30 focus-visible:ring-primary font-mono text-lg rounded-none"
+                value={rawCode}
+                onChange={(v) => { setRawCode(v); setCodeError(false); }}
+                isError={codeShaking}
               />
-              <p className="text-xs text-primary/50 font-mono mt-2">{t.codeHint} {demoCode}</p>
+              {codeError && !codeShaking ? (
+                <p className="text-xs text-destructive font-mono mt-1">{t.invalidCode}</p>
+              ) : (
+                <p className="text-xs text-primary/50 font-mono mt-1">{t.codeHint} {demoCode}</p>
+              )}
             </div>
             <Button
               data-testid="button-verify"
@@ -149,7 +168,6 @@ export default function Login() {
           </form>
         )}
 
-        {/* Language toggle */}
         <div className="mt-8 pt-4 border-t border-primary/10 flex justify-center">
           <button
             data-testid="button-lang-toggle"
@@ -163,8 +181,7 @@ export default function Login() {
 
       <style dangerouslySetInnerHTML={{__html: `
         .type-effect {
-          overflow: hidden;
-          white-space: nowrap;
+          overflow: hidden; white-space: nowrap;
           border-right: 2px solid hsl(var(--primary));
           width: 0;
           animation: typing 3s steps(40, end) forwards, blink 1s step-end infinite;
