@@ -10,6 +10,8 @@ import Chat from "./pages/chat";
 import Settings from "./pages/settings";
 import DoubleBottom from "./pages/settings/double-bottom";
 import Panic from "./pages/settings/panic";
+import Cybersecurity from "./pages/settings/cybersecurity";
+import Profile from "./pages/profile";
 import Admin from "./pages/admin";
 import NotFound from "./pages/not-found";
 
@@ -19,7 +21,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function Guard({ component: Component }: { component: React.ComponentType }) {
   const { session } = useSession();
   if (!session) {
     window.location.href = "/";
@@ -33,19 +35,25 @@ function Router() {
     <Switch>
       <Route path="/" component={Login} />
       <Route path="/chat">
-        <Layout><ProtectedRoute component={Chat} /></Layout>
+        <Layout><Guard component={Chat} /></Layout>
       </Route>
       <Route path="/settings">
-        <Layout><ProtectedRoute component={Settings} /></Layout>
+        <Layout><Guard component={Settings} /></Layout>
       </Route>
       <Route path="/settings/double-bottom">
-        <Layout><ProtectedRoute component={DoubleBottom} /></Layout>
+        <Layout><Guard component={DoubleBottom} /></Layout>
       </Route>
       <Route path="/settings/panic">
-        <Layout><ProtectedRoute component={Panic} /></Layout>
+        <Layout><Guard component={Panic} /></Layout>
+      </Route>
+      <Route path="/settings/cybersecurity">
+        <Layout><Guard component={Cybersecurity} /></Layout>
+      </Route>
+      <Route path="/profile">
+        <Layout><Guard component={Profile} /></Layout>
       </Route>
       <Route path="/admin">
-        <Layout><ProtectedRoute component={Admin} /></Layout>
+        <Layout><Guard component={Admin} /></Layout>
       </Route>
       <Route component={NotFound} />
     </Switch>
