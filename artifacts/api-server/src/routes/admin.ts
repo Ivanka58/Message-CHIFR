@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, messagesTable } from "@workspace/db";
-import { eq, count, desc } from "drizzle-orm";
+import { eq, count, desc, ne } from "drizzle-orm";
 
 const router = Router();
 
@@ -58,6 +58,31 @@ router.get("/admin/messages", async (_req, res) => {
       fromName: m.fromName ?? null,
     })),
   );
+});
+
+// POST /api/admin/purge — wipe all messages + non-test users, reset sessions
+// Protected by a secret key passed as ?key=... query param
+router.get("/admin/purge", async (req, res) => {
+  const SECRET = process.env.ADMIN_PURGE_KEY ?? "shifr-purge-2025";
+  if (req.query.key !== SECRET) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  // Delete all messages
+  await db.delete(messagesTable);
+
+  // Reset sessions and online status for ALL users
+  await db
+    .update(usersTable)
+    .set({ sessionId: null, isOnline: false });
+
+  // Delete all users except the seeded test contact
+  await db
+    .delete(usersTable)
+    .where(ne(usersTable.phone, "+0000000000"));
+
+  res.json({ ok: true, message: "Database purged. All users logged out." });
 });
 
 export default router;
