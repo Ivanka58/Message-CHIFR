@@ -437,6 +437,8 @@ components:
           type: boolean
         readAt:
           type: ["string", "null"]
+        editedAt:
+          type: ["string", "null"]
         fromName:
           type: ["string", "null"]
 

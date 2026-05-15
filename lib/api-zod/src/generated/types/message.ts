@@ -18,5 +18,7 @@ export interface Message {
   /** @nullable */
   readAt?: string | null;
   /** @nullable */
+  editedAt?: string | null;
+  /** @nullable */
   fromName?: string | null;
 }

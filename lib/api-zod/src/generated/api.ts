@@ -136,6 +136,7 @@ export const FetchMessagesResponseItem = zod.object({
   timestamp: zod.string(),
   isEncrypted: zod.boolean(),
   readAt: zod.string().nullish(),
+  editedAt: zod.string().nullish(),
   fromName: zod.string().nullish(),
 });
 export const FetchMessagesResponse = zod.array(FetchMessagesResponseItem);
@@ -223,6 +224,7 @@ export const AdminListMessagesResponseItem = zod.object({
   timestamp: zod.string(),
   isEncrypted: zod.boolean(),
   readAt: zod.string().nullish(),
+  editedAt: zod.string().nullish(),
   fromName: zod.string().nullish(),
 });
 export const AdminListMessagesResponse = zod.array(

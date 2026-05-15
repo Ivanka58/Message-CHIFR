@@ -32,20 +32,23 @@ function sanitizeText(text: string): string {
     .trim();
 }
 
-// IMPORTANT: /messages/stats and /messages/unread MUST be before /messages/:userId
-// otherwise Express matches "stats"/"unread" as a userId param.
+function formatMsg(m: typeof messagesTable.$inferSelect & { fromName?: string | null }) {
+  return {
+    ...m,
+    timestamp: m.timestamp.toISOString(),
+    readAt: m.readAt ? m.readAt.toISOString() : null,
+    editedAt: m.editedAt ? m.editedAt.toISOString() : null,
+    fromName: m.fromName ?? null,
+  };
+}
 
+// IMPORTANT: /messages/stats and /messages/unread MUST be before /messages/:userId
 router.get("/messages/stats", requireSession, async (req: AuthedRequest, res) => {
   const userId = req.currentUserId!;
   const [sentResult] = await db.select({ value: count() }).from(messagesTable).where(eq(messagesTable.fromUserId, userId));
   const [receivedResult] = await db.select({ value: count() }).from(messagesTable).where(eq(messagesTable.toUserId, userId));
   const contacts = await db.selectDistinct({ id: messagesTable.toUserId }).from(messagesTable).where(eq(messagesTable.fromUserId, userId));
-  res.json({
-    totalSent: sentResult.value,
-    totalReceived: receivedResult.value,
-    encryptedCount: 0,
-    contactCount: contacts.length,
-  });
+  res.json({ totalSent: sentResult.value, totalReceived: receivedResult.value, encryptedCount: 0, contactCount: contacts.length });
 });
 
 router.get("/messages/unread", requireSession, async (req: AuthedRequest, res) => {
@@ -53,13 +56,10 @@ router.get("/messages/unread", requireSession, async (req: AuthedRequest, res) =
   const results = await db
     .select({ fromUserId: messagesTable.fromUserId, cnt: count() })
     .from(messagesTable)
-    .where(and(eq(messagesTable.toUserId, userId), isNull(messagesTable.readAt)))
+    .where(and(eq(messagesTable.toUserId, userId), isNull(messagesTable.readAt), eq(messagesTable.deletedForRecipient, false)))
     .groupBy(messagesTable.fromUserId);
-
   const map: Record<number, number> = {};
-  for (const r of results) {
-    map[r.fromUserId] = Number(r.cnt);
-  }
+  for (const r of results) map[r.fromUserId] = Number(r.cnt);
   res.json(map);
 });
 
@@ -74,9 +74,7 @@ router.get("/messages/:userId", requireSession, async (req: AuthedRequest, res) 
     and(eq(messagesTable.fromUserId, otherUserId), eq(messagesTable.toUserId, currentUserId)),
   );
 
-  // Mark unread incoming messages as read
-  await db
-    .update(messagesTable)
+  await db.update(messagesTable)
     .set({ readAt: new Date() })
     .where(and(
       eq(messagesTable.toUserId, currentUserId),
@@ -90,9 +88,13 @@ router.get("/messages/:userId", requireSession, async (req: AuthedRequest, res) 
       fromUserId: messagesTable.fromUserId,
       toUserId: messagesTable.toUserId,
       text: messagesTable.text,
+      encryptedText: messagesTable.encryptedText,
       isEncrypted: messagesTable.isEncrypted,
       timestamp: messagesTable.timestamp,
       readAt: messagesTable.readAt,
+      editedAt: messagesTable.editedAt,
+      deletedForSender: messagesTable.deletedForSender,
+      deletedForRecipient: messagesTable.deletedForRecipient,
       fromName: usersTable.name,
     })
     .from(messagesTable)
@@ -101,24 +103,21 @@ router.get("/messages/:userId", requireSession, async (req: AuthedRequest, res) 
     .orderBy(desc(messagesTable.timestamp))
     .limit(100);
 
-  res.json(
-    msgs.reverse().map((m) => ({
-      ...m,
-      timestamp: m.timestamp.toISOString(),
-      readAt: m.readAt ? m.readAt.toISOString() : null,
-      fromName: m.fromName ?? null,
-    })),
-  );
+  const filtered = msgs
+    .reverse()
+    .filter((m) => {
+      if (m.fromUserId === currentUserId) return !m.deletedForSender;
+      return !m.deletedForRecipient;
+    })
+    .map((m) => formatMsg(m));
+
+  res.json(filtered);
 });
 
-// POST /messages — send a message + push notification
+// POST /messages
 router.post("/messages", requireSession, async (req: AuthedRequest, res) => {
   const currentUserId = req.currentUserId!;
-
-  if (!checkRateLimit(currentUserId)) {
-    res.status(429).json({ error: "Rate limit exceeded." });
-    return;
-  }
+  if (!checkRateLimit(currentUserId)) { res.status(429).json({ error: "Rate limit exceeded." }); return; }
 
   const { toUserId, text } = req.body as { toUserId: number; text: string };
   if (!toUserId || !text) { res.status(400).json({ error: "toUserId and text are required" }); return; }
@@ -141,12 +140,55 @@ router.post("/messages", requireSession, async (req: AuthedRequest, res) => {
     tag: `msg-from-${currentUserId}`,
   }).catch(() => {});
 
-  res.status(201).json({
-    ...msg,
-    timestamp: msg.timestamp.toISOString(),
-    readAt: null,
-    fromName: fromUser?.name ?? null,
-  });
+  res.status(201).json(formatMsg({ ...msg, fromName: fromUser?.name ?? null }));
+});
+
+// DELETE /messages/:id?scope=self|all
+router.delete("/messages/:id", requireSession, async (req: AuthedRequest, res) => {
+  const msgId = Number(req.params.id);
+  const scope = req.query.scope as string;
+  if (isNaN(msgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (scope !== "self" && scope !== "all") { res.status(400).json({ error: "scope must be 'self' or 'all'" }); return; }
+
+  const [msg] = await db.select().from(messagesTable).where(eq(messagesTable.id, msgId)).limit(1);
+  if (!msg) { res.status(404).json({ error: "Not found" }); return; }
+
+  const userId = req.currentUserId!;
+  const isSender = msg.fromUserId === userId;
+  const isRecipient = msg.toUserId === userId;
+  if (!isSender && !isRecipient) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  if (scope === "all") {
+    if (!isSender) { res.status(403).json({ error: "Only sender can delete for all" }); return; }
+    await db.delete(messagesTable).where(eq(messagesTable.id, msgId));
+  } else {
+    const update = isSender ? { deletedForSender: true } : { deletedForRecipient: true };
+    await db.update(messagesTable).set(update).where(eq(messagesTable.id, msgId));
+  }
+
+  res.json({ ok: true });
+});
+
+// PATCH /messages/:id — edit message
+router.patch("/messages/:id", requireSession, async (req: AuthedRequest, res) => {
+  const msgId = Number(req.params.id);
+  if (isNaN(msgId)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const { text } = req.body as { text: string };
+  const cleanText = sanitizeText(String(text ?? ""));
+  if (!cleanText) { res.status(400).json({ error: "Text required" }); return; }
+
+  const [msg] = await db.select().from(messagesTable).where(eq(messagesTable.id, msgId)).limit(1);
+  if (!msg) { res.status(404).json({ error: "Not found" }); return; }
+  if (msg.fromUserId !== req.currentUserId!) { res.status(403).json({ error: "Not your message" }); return; }
+
+  const [updated] = await db
+    .update(messagesTable)
+    .set({ text: cleanText, editedAt: new Date() })
+    .where(eq(messagesTable.id, msgId))
+    .returning();
+
+  res.json(formatMsg({ ...updated, fromName: null }));
 });
 
 export default router;
