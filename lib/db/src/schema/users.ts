@@ -6,6 +6,7 @@ export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
   phone: text("phone").notNull().unique(),
   name: text("name").notNull(),
+  avatar: text("avatar"),
   sessionId: text("session_id"),
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen", { withTimezone: true }),

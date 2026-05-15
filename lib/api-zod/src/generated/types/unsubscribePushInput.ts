@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AuthCodeResponse {
-  message: string;
-  code: string;
+export interface UnsubscribePushInput {
+  endpoint: string;
 }

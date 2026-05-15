@@ -18,12 +18,12 @@ export const HealthCheckResponse = zod.object({
  * @summary Send phone number to receive verification code
  */
 export const LoginBody = zod.object({
-  phone: zod.string().describe("Phone number"),
+  phone: zod.string(),
 });
 
 export const LoginResponse = zod.object({
   message: zod.string(),
-  code: zod.string().describe("Verification code (always A-123456 in demo)"),
+  code: zod.string(),
 });
 
 /**
@@ -39,6 +39,7 @@ export const VerifyCodeResponse = zod.object({
   userId: zod.number(),
   name: zod.string(),
   phone: zod.string(),
+  avatar: zod.string().nullish(),
 });
 
 /**
@@ -52,6 +53,28 @@ export const GetMeResponse = zod.object({
   id: zod.number(),
   phone: zod.string(),
   name: zod.string(),
+  avatar: zod.string().nullish(),
+  isOnline: zod.boolean(),
+  lastSeen: zod.string().nullish(),
+});
+
+/**
+ * @summary Update current user profile
+ */
+export const UpdateMeHeader = zod.object({
+  "x-session-id": zod.string(),
+});
+
+export const UpdateMeBody = zod.object({
+  name: zod.string().optional(),
+  avatar: zod.string().optional(),
+});
+
+export const UpdateMeResponse = zod.object({
+  id: zod.number(),
+  phone: zod.string(),
+  name: zod.string(),
+  avatar: zod.string().nullish(),
   isOnline: zod.boolean(),
   lastSeen: zod.string().nullish(),
 });
@@ -67,10 +90,31 @@ export const ListUsersResponseItem = zod.object({
   id: zod.number(),
   phone: zod.string(),
   name: zod.string(),
+  avatar: zod.string().nullish(),
   isOnline: zod.boolean(),
   lastSeen: zod.string().nullish(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
+
+/**
+ * @summary Get any user's public profile
+ */
+export const GetUserByIdParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetUserByIdHeader = zod.object({
+  "x-session-id": zod.string(),
+});
+
+export const GetUserByIdResponse = zod.object({
+  id: zod.number(),
+  phone: zod.string(),
+  name: zod.string(),
+  avatar: zod.string().nullish(),
+  isOnline: zod.boolean(),
+  lastSeen: zod.string().nullish(),
+});
 
 /**
  * @summary Get message history with a specific user
@@ -91,6 +135,7 @@ export const FetchMessagesResponseItem = zod.object({
   encryptedText: zod.string().nullish(),
   timestamp: zod.string(),
   isEncrypted: zod.boolean(),
+  readAt: zod.string().nullish(),
   fromName: zod.string().nullish(),
 });
 export const FetchMessagesResponse = zod.array(FetchMessagesResponseItem);
@@ -122,6 +167,39 @@ export const GetMessageStatsResponse = zod.object({
 });
 
 /**
+ * @summary Register a push subscription
+ */
+export const SubscribePushHeader = zod.object({
+  "x-session-id": zod.string(),
+});
+
+export const SubscribePushBody = zod.object({
+  endpoint: zod.string(),
+  keys: zod.object({
+    p256dh: zod.string(),
+    auth: zod.string(),
+  }),
+});
+
+/**
+ * @summary Remove a push subscription
+ */
+export const UnsubscribePushHeader = zod.object({
+  "x-session-id": zod.string(),
+});
+
+export const UnsubscribePushBody = zod.object({
+  endpoint: zod.string(),
+});
+
+/**
+ * @summary Get VAPID public key for push subscription
+ */
+export const GetVapidPublicKeyResponse = zod.object({
+  publicKey: zod.string(),
+});
+
+/**
  * @summary Admin - list all users
  */
 export const AdminListUsersResponseItem = zod.object({
@@ -144,6 +222,7 @@ export const AdminListMessagesResponseItem = zod.object({
   encryptedText: zod.string().nullish(),
   timestamp: zod.string(),
   isEncrypted: zod.boolean(),
+  readAt: zod.string().nullish(),
   fromName: zod.string().nullish(),
 });
 export const AdminListMessagesResponse = zod.array(

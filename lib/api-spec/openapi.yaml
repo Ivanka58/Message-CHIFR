@@ -15,6 +15,8 @@ tags:
     description: User management
   - name: messages
     description: Messaging
+  - name: push
+    description: Push notifications
   - name: admin
     description: Admin panel
 
@@ -94,6 +96,31 @@ paths:
                 $ref: "#/components/schemas/User"
         "401":
           description: Unauthorized
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      parameters:
+        - in: header
+          name: x-session-id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
 
   /users:
     get:
@@ -117,6 +144,34 @@ paths:
                   $ref: "#/components/schemas/User"
         "401":
           description: Unauthorized
+
+  /users/{id}:
+    get:
+      operationId: getUserById
+      tags: [users]
+      summary: Get any user's public profile
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+        - in: header
+          name: x-session-id
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
 
   /messages/{userId}:
     get:
@@ -196,6 +251,67 @@ paths:
         "401":
           description: Unauthorized
 
+  /push/subscribe:
+    post:
+      operationId: subscribePush
+      tags: [push]
+      summary: Register a push subscription
+      parameters:
+        - in: header
+          name: x-session-id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscriptionInput"
+      responses:
+        "200":
+          description: Subscribed
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: unsubscribePush
+      tags: [push]
+      summary: Remove a push subscription
+      parameters:
+        - in: header
+          name: x-session-id
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnsubscribePushInput"
+      responses:
+        "200":
+          description: Unsubscribed
+        "401":
+          description: Unauthorized
+
+  /push/vapid-public-key:
+    get:
+      operationId: getVapidPublicKey
+      tags: [push]
+      summary: Get VAPID public key for push subscription
+      responses:
+        "200":
+          description: VAPID public key
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [publicKey]
+                properties:
+                  publicKey:
+                    type: string
+
   /admin/users:
     get:
       operationId: adminListUsers
@@ -242,7 +358,6 @@ components:
       properties:
         phone:
           type: string
-          description: Phone number
 
     AuthCodeResponse:
       type: object
@@ -252,7 +367,6 @@ components:
           type: string
         code:
           type: string
-          description: Verification code (always A-123456 in demo)
 
     VerifyInput:
       type: object
@@ -275,6 +389,8 @@ components:
           type: string
         phone:
           type: string
+        avatar:
+          type: ["string", "null"]
 
     User:
       type: object
@@ -286,10 +402,20 @@ components:
           type: string
         name:
           type: string
+        avatar:
+          type: ["string", "null"]
         isOnline:
           type: boolean
         lastSeen:
           type: ["string", "null"]
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        name:
+          type: string
+        avatar:
+          type: string
 
     Message:
       type: object
@@ -309,6 +435,8 @@ components:
           type: string
         isEncrypted:
           type: boolean
+        readAt:
+          type: ["string", "null"]
         fromName:
           type: ["string", "null"]
 
@@ -333,6 +461,28 @@ components:
           type: integer
         contactCount:
           type: integer
+
+    UnsubscribePushInput:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+
+    PushSubscriptionInput:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+        keys:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh:
+              type: string
+            auth:
+              type: string
 
     AdminUser:
       type: object

@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider, useSession } from "./lib/session";
 import { LangProvider } from "./lib/lang";
 import { Layout } from "./components/layout";
+import { useEffect } from "react";
+import { setupPush } from "./lib/push";
 import Login from "./pages/login";
 import Chat from "./pages/chat";
 import Settings from "./pages/settings";
@@ -20,6 +22,16 @@ const queryClient = new QueryClient({
     queries: { retry: false, refetchOnWindowFocus: false },
   },
 });
+
+function PushSetup() {
+  const { session } = useSession();
+  useEffect(() => {
+    if (session?.sessionId) {
+      setupPush(session.sessionId);
+    }
+  }, [session?.sessionId]);
+  return null;
+}
 
 function Guard({ component: Component }: { component: React.ComponentType }) {
   const { session } = useSession();
@@ -67,6 +79,7 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <SessionProvider>
             <LangProvider>
+              <PushSetup />
               <Router />
             </LangProvider>
           </SessionProvider>

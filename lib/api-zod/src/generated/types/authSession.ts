@@ -11,4 +11,6 @@ export interface AuthSession {
   userId: number;
   name: string;
   phone: string;
+  /** @nullable */
+  avatar?: string | null;
 }

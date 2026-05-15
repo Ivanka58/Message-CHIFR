@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AuthCodeResponse {
-  message: string;
-  code: string;
-}
+export type PushSubscriptionInputKeys = {
+  p256dh: string;
+  auth: string;
+};

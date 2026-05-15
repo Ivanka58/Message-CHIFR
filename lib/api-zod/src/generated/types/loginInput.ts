@@ -7,6 +7,5 @@
  */
 
 export interface LoginInput {
-  /** Phone number */
   phone: string;
 }

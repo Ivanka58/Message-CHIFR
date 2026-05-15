@@ -10,13 +10,11 @@ export interface HealthStatus {
 }
 
 export interface LoginInput {
-  /** Phone number */
   phone: string;
 }
 
 export interface AuthCodeResponse {
   message: string;
-  /** Verification code (always A-123456 in demo) */
   code: string;
 }
 
@@ -30,15 +28,24 @@ export interface AuthSession {
   userId: number;
   name: string;
   phone: string;
+  /** @nullable */
+  avatar?: string | null;
 }
 
 export interface User {
   id: number;
   phone: string;
   name: string;
+  /** @nullable */
+  avatar?: string | null;
   isOnline: boolean;
   /** @nullable */
   lastSeen?: string | null;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  avatar?: string;
 }
 
 export interface Message {
@@ -50,6 +57,8 @@ export interface Message {
   encryptedText?: string | null;
   timestamp: string;
   isEncrypted: boolean;
+  /** @nullable */
+  readAt?: string | null;
   /** @nullable */
   fromName?: string | null;
 }
@@ -66,6 +75,20 @@ export interface MessageStats {
   contactCount: number;
 }
 
+export interface UnsubscribePushInput {
+  endpoint: string;
+}
+
+export type PushSubscriptionInputKeys = {
+  p256dh: string;
+  auth: string;
+};
+
+export interface PushSubscriptionInput {
+  endpoint: string;
+  keys: PushSubscriptionInputKeys;
+}
+
 export interface AdminUser {
   id: number;
   phone: string;
@@ -73,3 +96,7 @@ export interface AdminUser {
   messageCount: number;
   createdAt: string;
 }
+
+export type GetVapidPublicKey200 = {
+  publicKey: string;
+};

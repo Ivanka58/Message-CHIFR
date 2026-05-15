@@ -10,8 +10,9 @@ export const messagesTable = pgTable("messages", {
   encryptedText: text("encrypted_text"),
   isEncrypted: boolean("is_encrypted").notNull().default(true),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  readAt: timestamp("read_at", { withTimezone: true }),
 });
 
-export const insertMessageSchema = createInsertSchema(messagesTable).omit({ id: true, timestamp: true });
+export const insertMessageSchema = createInsertSchema(messagesTable).omit({ id: true, timestamp: true, readAt: true });
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messagesTable.$inferSelect;

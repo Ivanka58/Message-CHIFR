@@ -16,5 +16,7 @@ export interface Message {
   timestamp: string;
   isEncrypted: boolean;
   /** @nullable */
+  readAt?: string | null;
+  /** @nullable */
   fromName?: string | null;
 }

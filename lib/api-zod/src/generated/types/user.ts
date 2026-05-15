@@ -10,6 +10,8 @@ export interface User {
   id: number;
   phone: string;
   name: string;
+  /** @nullable */
+  avatar?: string | null;
   isOnline: boolean;
   /** @nullable */
   lastSeen?: string | null;

@@ -4,6 +4,7 @@ import authRouter from "./auth";
 import usersRouter from "./users";
 import messagesRouter from "./messages";
 import adminRouter from "./admin";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(authRouter);
 router.use(usersRouter);
 router.use(messagesRouter);
 router.use(adminRouter);
+router.use(pushRouter);
 
 export default router;
