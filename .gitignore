@@ -1,49 +1,91 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# =========================
+# Dependencies
+# =========================
+node_modules/
 
-# compiled output
-dist
-tmp
-out-tsc
+# =========================
+# Build output
+# =========================
+dist/
+build/
+coverage/
+out-tsc/
+tmp/
+
+# TypeScript
 *.tsbuildinfo
-.expo
-.expo-shared
 
-# dependencies
-node_modules
+# Vite
+.vite/
 
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+# Generated files
+.generated/
 
-# IDE - VSCode
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Logs
+# =========================
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log
+testem.log
+
+# =========================
+# IDEs / Editors
+# =========================
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+.idea/
+.project
+.classpath
+.c9/
+.settings/
+*.launch
+*.sublime-workspace
 
-# System Files
+# Cursor
+.cursor/
+
+# =========================
+# OS files
+# =========================
 .DS_Store
 Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
+# =========================
+# Cache
+# =========================
 .cache/
-.local/
+.sass-cache/
+
+# =========================
+# Replit
+# =========================
+.replit
+.replitignore
+.replit-artifact
+artifact.toml
+
+# =========================
+# Misc
+# =========================
+connect.lock
+libpeerconnection.log
+typings/
+
+# =========================
+# Local runtime data
+# =========================
+.local/state/
+.local/share/
