@@ -54,16 +54,9 @@ export default defineConfig({
 
   // ⚠️ ВАЖНО: server config только для локального dev
   server: {
-    port: 5000,
-    strictPort: true,
-    host: "0.0.0.0",
-    allowedHosts: true,
-    proxy: {
-      "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
-      },
-    },
+    port: 5173,
+    strictPort: false,
+    host: true,
   },
 
   preview: {
