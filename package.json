@@ -1,16 +1,16 @@
 {
-  "name": "workspace",
+  "name": "shifr",
   "version": "0.0.0",
-  "license": "MIT",
+  "private": true,
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "dev:web": "pnpm --filter @shifr/web dev",
+    "dev:api": "pnpm --filter @shifr/api dev",
+    "build": "pnpm --filter @shifr/db push && pnpm --filter @shifr/api build && pnpm --filter @shifr/web build",
+    "db:push": "pnpm --filter @shifr/db push",
+    "typecheck": "pnpm -r --if-present run typecheck"
   },
-  "private": true,
   "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
+    "typescript": "~5.9.2"
   }
 }
